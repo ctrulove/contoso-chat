@@ -30,10 +30,14 @@ param workspacesApwsContosoChatSfAiName string = 'apws-contoso-chat-sf-ai'
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
-var openAiSubdomain  = '${accountsContosoChatSfAiServicesName}${resourceToken}'
+var openAiSubdomain = '${accountsContosoChatSfAiServicesName}${resourceToken}'
 var openAiEndpoint = 'https://${openAiSubdomain }.openai.azure.com/'
 var resourceToken = toLower(uniqueString(subscription().id, environmentName, location))
-var tags = { 'azd-env-name': environmentName }
+var tags = {
+  'azd-env-name': environmentName
+  primaryContact: 'craig.trulove@perficient.com'
+  secondaryContact: 'ryan.selley@perficient.com'
+}
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -118,10 +122,13 @@ module cosmos 'core/database/cosmos/sql/cosmos-sql-db.bicep' = {
     accountName: !empty(cosmosAccountName) ? cosmosAccountName : 'cosmos-contoso-${resourceToken}'
     databaseName: 'contoso-outdoor'
     location: location
-    tags: union(tags, {
-      defaultExperience: 'Core (SQL)'
-      'hidden-cosmos-mmspecial': ''
-    })
+    tags: union(
+      tags,
+      {
+        defaultExperience: 'Core (SQL)'
+        'hidden-cosmos-mmspecial': ''
+      }
+    )
     keyVaultName: keyvault.outputs.name
     containers: [
       {
@@ -173,18 +180,21 @@ module monitoring 'core/monitor/monitoring.bicep' = {
   scope: rg
   params: {
     logAnalyticsName: workspacesApwsContosoChatSfAiName
-    applicationInsightsName: !empty(applicationInsightsName) ? applicationInsightsName : '${environmentName}-appi-contoso${resourceToken}'
+    applicationInsightsName: !empty(applicationInsightsName)
+      ? applicationInsightsName
+      : '${environmentName}-appi-contoso${resourceToken}'
     location: location
     tags: tags
   }
 }
 
-
 module openai 'core/ai/cognitiveservices.bicep' = {
   name: 'openai'
   scope: rg
   params: {
-    name: !empty(azureOpenAiResourceName) ? azureOpenAiResourceName : '${environmentName}-openai-contoso-${resourceToken}'
+    name: !empty(azureOpenAiResourceName)
+      ? azureOpenAiResourceName
+      : '${environmentName}-openai-contoso-${resourceToken}'
     location: location
     tags: tags
     kind: 'AIServices'
@@ -207,7 +217,7 @@ module openai 'core/ai/cognitiveservices.bicep' = {
         model: {
           format: 'OpenAI'
           name: 'gpt-4'
-          version: '0613'
+          version: '0125-Preview'
         }
         sku: {
           name: 'Standard'
